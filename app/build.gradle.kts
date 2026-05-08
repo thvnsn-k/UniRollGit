@@ -44,7 +44,12 @@ dependencies {
     androidTestImplementation(libs.espresso.core)
     androidTestImplementation(libs.ext.junit)
 
+    // Material Design Components
+    implementation("com.google.android.material:material:1.9.0")
+
     // Room Database
-    implementation("androidx.room:room-runtime:2.8.4")
-    annotationProcessor("androidx.room:room-compiler:2.8.4")
+    val room_version = "2.6.1"
+    implementation("androidx.room:room-runtime:$room_version")
+    annotationProcessor("androidx.room:room-compiler:$room_version")
+    implementation("androidx.room:room-common:$room_version")
 }
