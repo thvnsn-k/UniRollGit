@@ -20,5 +20,10 @@ public class MainActivity extends AppCompatActivity {
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
         });
+
+        findViewById(R.id.btnGoToLogin).setOnClickListener(v -> {
+            android.content.Intent intent = new android.content.Intent(MainActivity.this, LoginActivity.class);
+            startActivity(intent);
+        });
     }
 }
