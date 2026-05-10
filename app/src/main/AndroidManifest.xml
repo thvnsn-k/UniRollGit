@@ -32,6 +32,9 @@
         <activity
             android:name=".StudentDashboardActivity"
             android:exported="false" />
+        <activity
+            android:name=".AddEditSubjectActivity"
+            android:exported="false" />
     </application>
 
 </manifest>
