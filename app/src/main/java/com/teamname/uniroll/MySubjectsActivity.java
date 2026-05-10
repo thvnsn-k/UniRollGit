@@ -1,6 +1,5 @@
 package com.teamname.uniroll;
 
-import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.widget.Button;
@@ -8,59 +7,40 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.graphics.Insets;
-import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowInsetsCompat;
 
 import com.teamname.uniroll.database.AppDatabase;
-import com.teamname.uniroll.database.entity.Enrollment;
 import com.teamname.uniroll.database.entity.Subject;
 
 import java.util.List;
 
-public class StudentDashboardActivity extends AppCompatActivity {
+public class MySubjectsActivity extends AppCompatActivity {
 
     private LinearLayout subjectsContainer;
-    private Button btnMySubjects, btnLogout;
+    private Button btnBack;
     private AppDatabase db;
     private int studentId;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        EdgeToEdge.enable(this);
-        setContentView(R.layout.activity_student_dashboard);
-
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
-            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
-            return insets;
-        });
+        setContentView(R.layout.activity_my_subjects);
 
         subjectsContainer = findViewById(R.id.subjectsContainer);
-        btnMySubjects = findViewById(R.id.btnMySubjects);
-        btnLogout = findViewById(R.id.btnLogout);
+        btnBack = findViewById(R.id.btnBack);
 
         db = AppDatabase.getInstance(this);
         studentId = getLoggedInStudentId();
 
         if (studentId == -1) {
             Toast.makeText(this, "Please login again", Toast.LENGTH_SHORT).show();
-            startActivity(new Intent(StudentDashboardActivity.this, LoginActivity.class));
             finish();
             return;
         }
 
-        loadAllSubjects();
+        loadEnrolledSubjects();
 
-        btnMySubjects.setOnClickListener(v -> {
-            Intent intent = new Intent(StudentDashboardActivity.this, MySubjectsActivity.class);
-            startActivity(intent);
-        });
-
-        btnLogout.setOnClickListener(v -> logoutUser());
+        btnBack.setOnClickListener(v -> finish());
     }
 
     private int getLoggedInStudentId() {
@@ -79,16 +59,16 @@ public class StudentDashboardActivity extends AppCompatActivity {
         return id;
     }
 
-    private void loadAllSubjects() {
+    private void loadEnrolledSubjects() {
         new Thread(() -> {
-            List<Subject> subjects = db.subjectDao().getAllSubjects();
+            List<Subject> subjects = db.enrollmentDao().getEnrolledSubjects(studentId);
 
             runOnUiThread(() -> {
                 subjectsContainer.removeAllViews();
 
                 if (subjects == null || subjects.isEmpty()) {
                     TextView emptyText = new TextView(this);
-                    emptyText.setText("No subjects available yet.");
+                    emptyText.setText("No subjects enrolled yet.");
                     emptyText.setTextSize(16);
                     emptyText.setTextColor(0xFF777777);
                     emptyText.setPadding(10, 20, 10, 20);
@@ -128,41 +108,25 @@ public class StudentDashboardActivity extends AppCompatActivity {
         subjectDetails.setTextColor(0xFF777777);
         subjectDetails.setPadding(0, 8, 0, 8);
 
-        Button enrollButton = new Button(this);
-        enrollButton.setText("ENROLL");
-        enrollButton.setOnClickListener(v -> enrollSubject(subject.id));
+        Button dropButton = new Button(this);
+        dropButton.setText("DROP");
+        dropButton.setOnClickListener(v -> dropSubject(subject.id));
 
         card.addView(subjectName);
         card.addView(subjectDetails);
-        card.addView(enrollButton);
+        card.addView(dropButton);
 
         subjectsContainer.addView(card);
     }
 
-    private void enrollSubject(int subjectId) {
+    private void dropSubject(int subjectId) {
         new Thread(() -> {
-            int alreadyEnrolled = db.enrollmentDao().isEnrolled(studentId, subjectId);
+            db.enrollmentDao().unenroll(studentId, subjectId);
 
-            if (alreadyEnrolled > 0) {
-                runOnUiThread(() ->
-                        Toast.makeText(this, "Already enrolled in this subject", Toast.LENGTH_SHORT).show()
-                );
-            } else {
-                db.enrollmentDao().insert(new Enrollment(studentId, subjectId));
-
-                runOnUiThread(() ->
-                        Toast.makeText(this, "Enrolled successfully", Toast.LENGTH_SHORT).show()
-                );
-            }
+            runOnUiThread(() -> {
+                Toast.makeText(this, "Subject dropped", Toast.LENGTH_SHORT).show();
+                loadEnrolledSubjects();
+            });
         }).start();
-    }
-
-    private void logoutUser() {
-        SharedPreferences session = getSharedPreferences("UniRollSession", MODE_PRIVATE);
-        session.edit().clear().apply();
-
-        Intent intent = new Intent(StudentDashboardActivity.this, LoginActivity.class);
-        startActivity(intent);
-        finish();
     }
 }
