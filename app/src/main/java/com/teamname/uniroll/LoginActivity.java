@@ -8,18 +8,29 @@ import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import android.content.SharedPreferences;
+
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
+import com.teamname.uniroll.database.AppDatabase;
+import com.teamname.uniroll.database.dao.UserDao;
+import com.teamname.uniroll.database.entity.User;
+
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 public class LoginActivity extends AppCompatActivity {
 
     private EditText etEmail;
     private EditText etPassword;
     private Button btnLogin;
     private TextView tvGoToSignUp;
+
+    private UserDao userDao;
+    private ExecutorService executorService;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -38,17 +49,46 @@ public class LoginActivity extends AppCompatActivity {
         btnLogin = findViewById(R.id.btnLogin);
         tvGoToSignUp = findViewById(R.id.tvGoToSignUp);
 
+        AppDatabase db = AppDatabase.getInstance(this);
+        userDao = db.userDao();
+        executorService = Executors.newSingleThreadExecutor();
+
         btnLogin.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                String email = etEmail.getText().toString();
+                String email = etEmail.getText().toString().trim();
                 String password = etPassword.getText().toString();
 
                 if (email.isEmpty() || password.isEmpty()) {
                     Toast.makeText(LoginActivity.this, "Please fill in all fields", Toast.LENGTH_SHORT).show();
                 } else {
-                    // TODO: Implement login logic
-                    Toast.makeText(LoginActivity.this, "Login attempt...", Toast.LENGTH_SHORT).show();
+                    executorService.execute(() -> {
+                        User user = userDao.login(email, password);
+                        runOnUiThread(() -> {
+                            if (user != null) {
+                                // Save session in SharedPreferences
+                                SharedPreferences sharedPreferences = getSharedPreferences("UniRollSession", MODE_PRIVATE);
+                                SharedPreferences.Editor editor = sharedPreferences.edit();
+                                editor.putInt("USER_ID", user.id);
+                                editor.putString("USER_ROLE", user.role);
+                                editor.apply();
+
+                                Toast.makeText(LoginActivity.this, "Login successful", Toast.LENGTH_SHORT).show();
+
+                                // Redirect based on role
+                                Intent intent;
+                                if ("LECTURER".equals(user.role)) {
+                                    intent = new Intent(LoginActivity.this, LecturerDashboardActivity.class);
+                                } else {
+                                    intent = new Intent(LoginActivity.this, StudentDashboardActivity.class);
+                                }
+                                startActivity(intent);
+                                finish();
+                            } else {
+                                Toast.makeText(LoginActivity.this, "Invalid email or password", Toast.LENGTH_SHORT).show();
+                            }
+                        });
+                    });
                 }
             }
         });
