@@ -13,7 +13,7 @@ import com.teamname.uniroll.database.entity.User;
 
 @Database(
         entities = {User.class, Subject.class, Enrollment.class},
-        version = 1,
+        version = 2,
         exportSchema = false
 )
 public abstract class AppDatabase extends RoomDatabase {
@@ -33,6 +33,7 @@ public abstract class AppDatabase extends RoomDatabase {
                                     AppDatabase.class,
                                     "UniRoll_db"
                             )
+                            .fallbackToDestructiveMigration()
                             .allowMainThreadQueries()
                             .build();
                 }

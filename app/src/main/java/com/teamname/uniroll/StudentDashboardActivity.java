@@ -66,7 +66,7 @@ public class StudentDashboardActivity extends AppCompatActivity {
     private int getLoggedInStudentId() {
         SharedPreferences session = getSharedPreferences("UniRollSession", MODE_PRIVATE);
 
-        int id = session.getInt("userId", -1);
+        int id = session.getInt("USER_ID", -1);
 
         if (id == -1) {
             id = session.getInt("id", -1);
